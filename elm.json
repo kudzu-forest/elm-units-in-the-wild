@@ -3,16 +3,16 @@
     "name": "kudzu-forest/elm-units-in-the-wild",
     "summary": "Human-readable unit notation with parsing, rendering, and arithmetic.",
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "exposed-modules": [
         "Units"
     ],
     "elm-version": "0.19.1 <= v < 0.20.0",
     "dependencies": {
         "elm/core": "1.0.0 <= v < 2.0.0",
-		"elm/parser": "1.0.0 <= v < 2.0.0"
+        "elm/parser": "1.0.0 <= v < 2.0.0"
     },
     "test-dependencies": {
-		"elm-explorations/test" : "2.0.0 <= v < 3.0.0"	
-	}
+        "elm-explorations/test": "2.0.0 <= v < 3.0.0"
+    }
 }

@@ -188,7 +188,7 @@ Several display options are configurable:
 - what is shown when the unit is dimensionless (`""`, `"1"`, `"[-]"` or whatever `String` you can choose).
 - (for TeX output) whether to use the `\frac{<numerator>}{<denominator>}` form at the top level
 
-Try these formats in [Ellie]()
+Try these formats in [Ellie](https://ellie-app.com/xMypHjS5vVra1)
 
 ### Parsing Units
 
