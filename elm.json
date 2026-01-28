@@ -3,7 +3,7 @@
     "name": "kudzu-forest/elm-units-in-the-wild",
     "summary": "Human-readable unit notation with parsing, rendering, and arithmetic.",
     "license": "MIT",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "exposed-modules": [
         "Units"
     ],
