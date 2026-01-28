@@ -1516,101 +1516,73 @@ chompUnitAtom =
         |> getChompedString
 
 
+atomParser : Dict String PrefixedSymbol -> Parser.Parser Unit
+atomParser dict =
+    chompUnitAtom
+        |> andThen
+            (\a ->
+                case Dict.get a dict of
+                    Just r ->
+                        succeed (Atom r.prefix r.symbol)
+
+                    Nothing ->
+                        if a == "" then
+                            problem "Some unit should be given here."
+
+                        else
+                            problem ("String \"" ++ a ++ "\" is not recognized as unit.")
+            )
+
+
+unitParserInner : Dict String PrefixedSymbol -> Parser.Parser Unit
+unitParserInner dict =
+    unitAtomParser dict |> unitChainParser dict
+
+
+unitChainParser : Dict String PrefixedSymbol -> Parser.Parser Unit -> Parser.Parser Unit
+unitChainParser dict leftParser =
+    leftParser
+        |> andThen
+            (\leftUnit ->
+                loop leftUnit
+                    (\u1 ->
+                        oneOf
+                            [ oneOf
+                                [ succeed (Div u1)
+                                    |. slashParser
+                                , succeed (Mul u1)
+                                    |. backtrackable separatorParser
+                                ]
+                                |= unitAtomParser dict
+                                |> map Loop
+                            , succeed (Done u1)
+                            ]
+                    )
+            )
+
+
+unitAtomParser : Dict String PrefixedSymbol -> Parser.Parser Unit
+unitAtomParser dict =
+    oneOf
+        [ withParen (lazy (\() -> unitParserInner dict))
+        , atomParser dict
+        , oneParser
+        ]
+        |> withOrWithoutExponent
+
+
 toParser_ : Dict String PrefixedSymbol -> Parser.Parser Unit
 toParser_ dict =
-    let
-        atomParser : Parser.Parser Unit
-        atomParser =
-            chompUnitAtom
-                |> andThen
-                    (\a ->
-                        case Dict.get a dict of
-                            Just r ->
-                                succeed (Atom r.prefix r.symbol)
-
-                            Nothing ->
-                                if a == "" then
-                                    problem "Some unit should be given here."
-
-                                else
-                                    problem ("String \"" ++ a ++ "\" is not recognized as unit.")
-                    )
-
-        unitParserInner : () -> Parser.Parser Unit
-        unitParserInner () =
-            oneOf
-                [ withParen (lazy unitParserInner)
-                , atomParser
-                , oneParser
-                ]
-                |> withOrWithoutExponent
-                |> andThen
-                    (\leftUnit ->
-                        loop leftUnit
-                            (\u1 ->
-                                oneOf
-                                    [ oneOf
-                                        [ succeed (Div u1)
-                                            |. slashParser
-                                        , succeed (Mul u1)
-                                            |. backtrackable separatorParser
-                                        ]
-                                        |= (oneOf
-                                                [ withParen (lazy unitParserInner)
-                                                , atomParser
-                                                , oneParser
-                                                ]
-                                                |> withOrWithoutExponent
-                                           )
-                                        |> map Loop
-                                    , succeed (Done u1)
-                                    ]
-                            )
-                    )
-
-        unitParser : Parser.Parser Unit
-        unitParser =
-            succeed identity
-                |. spaces
-                |= oneOf
-                    [ succeed One
-                        |. end
-                    , succeed (Div One)
-                        |. slashParser
-                        |= (oneOf
-                                [ withParen (lazy unitParserInner)
-                                , atomParser
-                                , oneParser
-                                ]
-                                |> withOrWithoutExponent
-                           )
-                        |> andThen
-                            (\leftUnit ->
-                                loop leftUnit
-                                    (\u1 ->
-                                        oneOf
-                                            [ oneOf
-                                                [ succeed (Div u1)
-                                                    |. slashParser
-                                                , succeed (Mul u1)
-                                                    |. backtrackable separatorParser
-                                                ]
-                                                |= (oneOf
-                                                        [ withParen (lazy unitParserInner)
-                                                        , atomParser
-                                                        , oneParser
-                                                        ]
-                                                        |> withOrWithoutExponent
-                                                   )
-                                                |> map Loop
-                                            , succeed (Done u1)
-                                            ]
-                                    )
-                            )
-                    , unitParserInner ()
-                    ]
-    in
-    unitParser
+    succeed identity
+        |. spaces
+        |= oneOf
+            [ succeed One
+                |. end
+            , succeed (Div One)
+                |. slashParser
+                |= (unitAtomParser dict |> unitChainParser dict)
+            , unitParserInner dict
+            ]
 
 
 {-| Converts a set of unit symbols into a `Parser`.
@@ -2412,6 +2384,9 @@ toString ((DisplayOption dr) as d) rowUnit =
                     ++ (case nU of
                             One ->
                                 "1"
+
+                            Parened False nU_ ->
+                                toStringInner dr nU_
 
                             _ ->
                                 toStringInner dr nU
